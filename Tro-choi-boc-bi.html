@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trò chơi 3‑5‑7</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    .row { display: flex; justify-content: center; margin: 10px; padding: 10px; }
+    .row-label { width: 100px; font-weight: bold; align-self: center; }
+    .coins { display: flex; }
+    .coin { width: 40px; height: 40px; border-radius: 50%; margin: 5px; cursor: pointer; }
+    .coin.selected { background-color: limegreen !important; }
+    .controls { margin-top: 20px; }
+    .rules { margin-top: 40px; padding: 15px; border: 1px solid #ccc; border-radius: 10px; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; text-align: left; }
+    #fireworks { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 1000; display: none; }
+  </style>
+</head>
+<body>
+  <h1>Trò chơi 3‑5‑7</h1>
+  <div id="rows">
+    <div class="row" data-row="0"><div class="row-label">Hàng 1</div><div class="coins"></div></div>
+    <div class="row" data-row="1"><div class="row-label">Hàng 2</div><div class="coins"></div></div>
+    <div class="row" data-row="2"><div class="row-label">Hàng 3</div><div class="coins"></div></div>
+  </div>
+  <div class="controls">
+    <button onclick="confirmMove()">Xác nhận lượt bốc</button>
+    <p id="status">Lượt của người chơi 1</p>
+  </div>
+  <div class="rules">
+    <h3>Luật chơi:</h3>
+    <ul>
+      <li>Trò chơi gồm 3 hàng đồng xu: 3, 5 và 7.</li>
+      <li>Mỗi lượt, người chơi được lấy ít nhất 1 đồng xu, nhưng chỉ trong một hàng duy nhất.</li>
+      <li>Người bốc đồng xu cuối cùng sẽ là người chiến thắng.</li>
+    </ul>
+  </div>
+  <canvas id="fireworks"></canvas>
+<script>
+  const rows = [3,5,7];
+  const gameRows = document.querySelectorAll('.row');
+  let currentPlayer = 1;
+  let selectedCoins = [];
+  const rowColors = ['blue','red','gold'];
+  function createCoins(){
+    rows.forEach((count,rowIndex)=>{
+      const coins = gameRows[rowIndex].querySelector('.coins');
+      coins.innerHTML = '';
+      for(let i=0;i<count;i++){
+        const coin = document.createElement('div');
+        coin.className = 'coin';
+        coin.style.backgroundColor = rowColors[rowIndex];
+        coin.dataset.row = rowIndex;
+        coin.onclick = () => toggleSelect(coin);
+        coins.appendChild(coin);
+      }
+    });
+  }
+  function toggleSelect(coin){
+    const row = coin.dataset.row;
+    if(selectedCoins.length>0 && selectedCoins[0].dataset.row !== row) {
+      alert('Chỉ được chọn đồng xu trong cùng một hàng!');
+      return;
+    }
+    if(coin.classList.contains('selected')) {
+      coin.classList.remove('selected');
+      selectedCoins = selectedCoins.filter(c=>c!==coin);
+    } else {
+      coin.classList.add('selected');
+      selectedCoins.push(coin);
+    }
+  }
+  function confirmMove(){
+    if(selectedCoins.length===0) {
+      alert('Chưa chọn đồng xu nào!');
+      return;
+    }
+    selectedCoins.forEach(c=>c.remove());
+    selectedCoins=[];
+    currentPlayer = 3 - currentPlayer;
+    document.getElementById('status').innerText = `Lượt của người chơi ${currentPlayer}`;
+    checkWin();
+  }
+  function checkWin(){
+    if(document.querySelectorAll('.coin').length === 0){
+      document.getElementById('status').innerText = `🎉 Chúc mừng người chơi ${3 - currentPlayer} đã thắng cuộc! 🎉`;
+      startFireworks();
+      setTimeout(()=>location.reload(),8000);
+    }
+  }
+  createCoins();
+  function startFireworks(){
+    const canvas = document.getElementById('fireworks');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    canvas.style.display = 'block';
+    let particles = [];
+    function createFirework(){
+      const colors = ['#ff0000','#ffff00','#00ff00','#00ffff','#ff00ff'];
+      const x = Math.random()*canvas.width;
+      const y = Math.random()*canvas.height/2;
+      for(let i=0;i<100;i++){
+        particles.push({
+          x, y,
+          dx:(Math.random()-0.5)*5,
+          dy:(Math.random()-0.5)*5,
+          life:100,
+          color: colors[Math.floor(Math.random()*colors.length)]
+        });
+      }
+    }
+    function animate(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      particles.forEach((p,i)=>{
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,2,0,Math.PI*2);
+        ctx.fill();
+        p.x+=p.dx;
+        p.y+=p.dy;
+        p.life--;
+        if(p.life<=0) particles.splice(i,1);
+      });
+      if(particles.length<50) createFirework();
+      requestAnimationFrame(animate);
+    }
+    animate();
+  }
+</script>
+</body>
+</html>
